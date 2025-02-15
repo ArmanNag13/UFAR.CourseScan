@@ -1,0 +1,6 @@
+@UFAR.PDFSync_HostAddress = http://localhost:5238
+
+GET {{UFAR.PDFSync_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
