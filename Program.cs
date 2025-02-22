@@ -17,6 +17,16 @@ namespace UFAR.PDFSync
             builder.Services.AddScoped<IAIService, AIService>();
             builder.Services.AddScoped<PdfService>(); // Ensure PdfService is registered.
             builder.Services.AddScoped<IPdfService, PdfService>();
+            builder.Services.AddScoped<IPdfParser, PdfParser>();
+            builder.Services.AddScoped<ICourseParserService,CourseParserService >();
+            ;
+            builder.Services.AddScoped<ISyllabusService, SyllabusService>();
+            builder.Services.AddControllers().AddJsonOptions(options =>
+            {
+                options.JsonSerializerOptions.ReferenceHandler = System.Text.Json.Serialization.ReferenceHandler.Preserve;
+            });
+
+
 
 
 
@@ -40,5 +50,6 @@ namespace UFAR.PDFSync
 
             app.Run();
         }
+
     }
 }

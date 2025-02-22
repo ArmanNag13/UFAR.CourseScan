@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿/*
+ * using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using UFAR.PDFSync.Services;
 using UFAR.PDFSync.DAO;
@@ -112,3 +113,4 @@ namespace UFAR.PDFSync.Controllers
         }
     }
 }
+*/

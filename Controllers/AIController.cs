@@ -6,7 +6,6 @@ using UFAR.PDFSync.DAO;
 using UFAR.PDFSync.Entities;
 using Microsoft.EntityFrameworkCore;
 using System;
-using UFAR.PDFSync.Services;
 using Microsoft.Extensions.Logging;
 
 namespace UFAR.TimeManagmentTracker.Backend.Controllers

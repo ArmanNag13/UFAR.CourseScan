@@ -1,52 +1,32 @@
-﻿using System.IO;
-using System.Threading.Tasks;
-using UglyToad.PdfPig;
-using UFAR.PDFSync.DAO;
-using UFAR.PDFSync.Entities;
+﻿using iText.Kernel.Pdf;
+using iText.Kernel.Pdf.Canvas.Parser;
+using iText.Kernel.Pdf.Canvas.Parser.Listener;
+using System.Text;
 
-namespace UFAR.PDFSync.Services
+public class PdfService : IPdfService
 {
-    public class PdfService : IPdfService
+    // Method to extract text from the PDF
+    public string ExtractTextFromPdf(string filePath)
     {
-        private readonly ApplicationDbContext _context;
+        var extractedText = new StringBuilder();
 
-        public PdfService(ApplicationDbContext context)
+        // Open the PDF file
+        using (var reader = new PdfReader(filePath))
+        using (var pdfDoc = new PdfDocument(reader))
         {
-            _context = context;
-        }
-
-        public async Task<string> ExtractTextAsync(string filePath)
-        {
-            if (!File.Exists(filePath))
-                throw new FileNotFoundException("File not found.");
-
-            string extractedText = "";
-            using (UglyToad.PdfPig.PdfDocument document = UglyToad.PdfPig.PdfDocument.Open(filePath)) // Explicitly reference PdfPig
+            // Loop through each page in the PDF
+            for (int page = 1; page <= pdfDoc.GetNumberOfPages(); page++)
             {
-                foreach (var page in document.GetPages())
-                {
-                    extractedText += page.Text + "\n";
-                }
+                var strategy = new LocationTextExtractionStrategy();
+                var pageContent = PdfTextExtractor.GetTextFromPage(pdfDoc.GetPage(page), strategy);
+                extractedText.Append(pageContent);
             }
-
-            return extractedText;
         }
 
-        public async Task<string> ExtractTextAndSaveAsync(string filePath, string fileName)
-        {
-            string extractedText = await ExtractTextAsync(filePath);
+        // Return the full extracted text as a string
+        return extractedText.ToString();
+        Console.WriteLine("Extracted Text:");
+        Console.WriteLine(extractedText);
 
-            var pdfDoc = new PdfDocumentEntity // Explicitly reference your entity
-            {
-                FileName = fileName,
-                ExtractedText = extractedText,
-                IsDefault = false // Make this default or set it based on your condition
-            };
-
-            _context.PdfDocuments.Add(pdfDoc);
-            await _context.SaveChangesAsync();
-
-            return extractedText;
-        }
     }
 }

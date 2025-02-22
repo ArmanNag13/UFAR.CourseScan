@@ -1,9 +1,4 @@
-﻿using System.Threading.Tasks;
-
-namespace UFAR.PDFSync.Services
+﻿public interface IPdfService
 {
-    public interface IPdfService
-    {
-        Task<string> ExtractTextAndSaveAsync(string filePath, string fileName);
-    }
+    string ExtractTextFromPdf(string filePath);
 }
