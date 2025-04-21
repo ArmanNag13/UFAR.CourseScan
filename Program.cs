@@ -20,7 +20,7 @@ namespace UFAR.PDFSync
             builder.Services.AddScoped<IPdfParser, PdfParser>();
             builder.Services.AddScoped<ICourseParserService,CourseParserService >();
             ;
-            builder.Services.AddScoped<ISyllabusService, SyllabusService>();
+           
             builder.Services.AddControllers().AddJsonOptions(options =>
             {
                 options.JsonSerializerOptions.ReferenceHandler = System.Text.Json.Serialization.ReferenceHandler.Preserve;

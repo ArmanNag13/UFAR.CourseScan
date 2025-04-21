@@ -29,4 +29,9 @@ public class PdfService : IPdfService
         Console.WriteLine(extractedText);
 
     }
+
+    public string ExtractTextFromPdf(Stream stream)
+    {
+        throw new NotImplementedException();
+    }
 }

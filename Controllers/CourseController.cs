@@ -50,6 +50,7 @@ public class CourseController : Controller
 
             // Parse the extracted text into a Course entity
             var course = _courseParserService.ParseCourse(extractedText);
+            Console.WriteLine(extractedText);
 
             if (course == null)
             {

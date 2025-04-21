@@ -22,7 +22,7 @@ public class PdfParser : IPdfParser
             Degree = ExtractValue(lines, "Degree") ?? "Unknown",
             Professor = ExtractValue(lines, "Professor") ?? "Unknown",
             CmHours = ExtractNumericValue(lines, "CM") ?? "0",
-            TdHours = ExtractNumericValue(lines, "TD") ?? "3" +
+            TdHours = ExtractNumericValue(lines, "TD") ?? "" +
                         ExtractNumericValue(lines, "TP") ?? "0",
             EctsCredits = ExtractNumericValue(lines, "ECTS") ?? "0"
         };

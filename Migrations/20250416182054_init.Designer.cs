@@ -12,7 +12,7 @@ using UFAR.PDFSync.DAO;
 namespace UFAR.PDFSync.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20250222171112_init")]
+    [Migration("20250416182054_init")]
     partial class init
     {
         /// <inheritdoc />

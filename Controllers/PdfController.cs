@@ -1,14 +1,10 @@
-﻿/*
- * using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.Mvc;
+using System;
+using System.IO;
+using System.Threading.Tasks;
 using UFAR.PDFSync.Services;
 using UFAR.PDFSync.DAO;
 using UFAR.PDFSync.Entities;
-using Microsoft.AspNetCore.Http;
-using System;
-using System.IO;
-using System.Linq;
-using System.Threading.Tasks;
 
 namespace UFAR.PDFSync.Controllers
 {
@@ -16,17 +12,18 @@ namespace UFAR.PDFSync.Controllers
     [ApiController]
     public class PdfController : ControllerBase
     {
-        private readonly ApplicationDbContext _context;
         private readonly IPdfService _pdfService;
+        private readonly ICourseParserService _courseParserService;
+        private readonly ApplicationDbContext _context;
 
-        public PdfController(ApplicationDbContext context, IPdfService pdfService)
+        public PdfController(IPdfService pdfService, ICourseParserService courseParserService, ApplicationDbContext context)
         {
-            _context = context;
             _pdfService = pdfService;
+            _courseParserService = courseParserService;
+            _context = context;
         }
 
-        // POST: api/Pdf/Upload
-        [HttpPost("Upload")]
+        [HttpPost("upload")]
         public async Task<IActionResult> UploadPdf(IFormFile file)
         {
             if (file == null || file.Length == 0)
@@ -36,75 +33,37 @@ namespace UFAR.PDFSync.Controllers
 
             try
             {
-                // Define a file path to temporarily store the uploaded file
-                var filePath = Path.Combine(Directory.GetCurrentDirectory(), "UploadedPdfs", file.FileName);
+                var uploadDirectory = Path.Combine(Directory.GetCurrentDirectory(), "Uploads");
+                if (!Directory.Exists(uploadDirectory))
+                {
+                    Directory.CreateDirectory(uploadDirectory);
+                }
 
-                // Ensure the directory exists
-                Directory.CreateDirectory(Path.GetDirectoryName(filePath));
+                var filePath = Path.Combine(uploadDirectory, file.FileName);
 
-                // Save the file to the server
                 using (var stream = new FileStream(filePath, FileMode.Create))
                 {
                     await file.CopyToAsync(stream);
                 }
 
-                // Extract text from the uploaded PDF and save it to the database
-                var extractedText = await _pdfService.ExtractTextAndSaveAsync(filePath, file.FileName);
+                var extractedText = _pdfService.ExtractTextFromPdf(filePath);
 
-                return Ok(new { message = "File uploaded successfully", extractedText });
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, $"Internal server error: {ex.Message}");
-            }
-        }
+                if (string.IsNullOrEmpty(extractedText))
+                {
+                    return BadRequest("Failed to extract text from the PDF.");
+                }
 
-        // GET: api/Pdf/{id}
-        [HttpGet("{id}")]
-        public async Task<IActionResult> GetPdfDocument(int id)
-        {
-            var pdfDocument = await _context.PdfDocuments.FindAsync(id);
-            if (pdfDocument == null)
-            {
-                return NotFound("Document not found.");
-            }
+                var course = _courseParserService.ParseCourse(extractedText);
 
-            return Ok(pdfDocument);
-        }
+                if (course == null)
+                {
+                    return BadRequest("Failed to parse course data from the extracted text.");
+                }
 
-        // GET: api/Pdf
-        [HttpGet]
-        public async Task<IActionResult> GetPdfDocuments()
-        {
-            var pdfDocuments = await _context.PdfDocuments.ToListAsync();
-            return Ok(pdfDocuments);
-        }
-
-        // PUT: api/Pdf/SetAsDefault/{id}
-        [HttpPut("SetAsDefault/{id}")]
-        public async Task<IActionResult> SetAsDefault(int id)
-        {
-            var pdfDocument = await _context.PdfDocuments.FindAsync(id);
-            if (pdfDocument == null)
-            {
-                return NotFound("Document not found.");
-            }
-
-            // Set the IsDefault property of the selected document to true
-            pdfDocument.IsDefault = true;
-
-            // Set IsDefault to false for all other documents to ensure only one is marked as default
-            var otherDocuments = await _context.PdfDocuments.Where(d => d.Id != id).ToListAsync();
-            foreach (var document in otherDocuments)
-            {
-                document.IsDefault = false;
-            }
-
-            try
-            {
-                // Save changes to the database
+                _context.Courses.Add(course);
                 await _context.SaveChangesAsync();
-                return Ok(new { message = "Document set as default successfully." });
+
+                return Ok("PDF data uploaded, parsed, and saved successfully.");
             }
             catch (Exception ex)
             {
@@ -113,4 +72,3 @@ namespace UFAR.PDFSync.Controllers
         }
     }
 }
-*/

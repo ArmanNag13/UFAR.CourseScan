@@ -7,12 +7,12 @@
     public string Qualification { get; set; } = string.Empty;
     public string Language { get; set; } = string.Empty; // "English" or "French"
     public string Professor { get; set; } = string.Empty;
-    public float ECTS { get; set; }
+    public int ECTS { get; set; }
     public int HoursCM { get; set; } // Lecture hours
     public int HoursTD { get; set; } // Practical hours
     public int HoursTP { get; set; } // Lab hours
 
-    public int CreditHours { get; set; }
+    public float CreditHours { get; set; }
     public List<LearningOutcome> LearningOutcomes { get; set; } = new();
     public List<Assessment> Assessments { get; set; } = new();
     public List<TeachingMethod> TeachingMethods { get; set; } = new();
