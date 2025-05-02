@@ -2,10 +2,12 @@
 using OpenAI.Chat;
 using UFAR.PDFSync.Entities;
 using System;
+using System.Linq;
 using System.Threading.Tasks;
 using Azure;
-using System.ClientModel;
 using UFAR.PDFSync.DAO;
+using UFAR.PDFSync.Services;
+using System.ClientModel;
 
 namespace UFAR.TimeManagmentTracker.Backend.Services
 {
@@ -50,22 +52,69 @@ namespace UFAR.TimeManagmentTracker.Backend.Services
             }
         }
 
+        // New function to get feedback based on parsed course data
+        public async Task<string> GetCourseFeedbackAsync(Course course)
+        {
+            try
+            {
+                // Constructing prompt with parsed course data
+                var prompt = $@"
+You are an academic assistant. Analyze the following university course plan and provide:
+
+- A short summary (2-3 sentences)
+- Feedback on structure (e.g., missing sections, unbalanced assessments)
+- Suggestions to improve clarity or completeness
+
+Course data:
+Title: {course.Title}
+Academic Year: {course.AcademicYear}
+Language: {course.Language}
+ECTS: {course.ECTS}
+Professor: {course.Professor}
+Learning Outcomes: {string.Join("\n", course.LearningOutcomes.Select(lo => $"- {lo.Description}"))}
+Assessments: {string.Join("\n", course.Assessments.Select(a => $"- {a.Type}: {a.Method}"))}
+Teaching Methods: {string.Join("\n", course.TeachingMethods.Select(tm => $"- {tm.Method}"))}
+Syllabus: {string.Join("\n", course.Syllabus.Select(s => $"- {s.Topic} ({s.Hours}h)"))}
+References: {string.Join("\n", course.References.Select(r => $"- {r.Title} by {r.Author}"))}
+
+Respond in markdown format.
+";
+
+                var completion = await _chatClient.CompleteChatAsync(
+                    new ChatMessage[]
+                    {
+                        new SystemChatMessage("You are an assistant specialized in academic course analysis. Provide a concise and informative summary and feedback on the course structure."),
+                        new UserChatMessage(prompt)
+                    }
+                );
+
+                var aiResponse = completion.Value.Content[0].Text;
+
+                return aiResponse.Trim(); // Return the concise feedback result
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error while analyzing course: {ex.Message}");
+                throw;
+            }
+        }
+
         // Updated function to compare two texts concisely
         public async Task<string> CompareTextsAsync(string text1, string text2)
         {
             try
             {
                 var prompt = $@"
-                I have two texts. Please compare them and list only the differences, changes, or missing words between the two, in a concise format. 
+I have two texts. Please compare them and list only the differences, changes, or missing words between the two, in a concise format. 
 
-                Text 1:
-                {text1}
+Text 1:
+{text1}
 
-                Text 2:
-                {text2}
+Text 2:
+{text2}
 
-                Only provide a list of the differences without any additional explanation or details.
-                ";
+Only provide a list of the differences without any additional explanation or details.
+";
 
                 var completion = await _chatClient.CompleteChatAsync(
                     new ChatMessage[]

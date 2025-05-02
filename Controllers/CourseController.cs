@@ -3,6 +3,7 @@ using System.IO;
 using System.Threading.Tasks;
 using UFAR.PDFSync.DAO;
 using Microsoft.Extensions.Logging;
+using System.Linq;
 
 public class CourseController : Controller
 {
@@ -56,11 +57,8 @@ public class CourseController : Controller
 
             _logger?.LogInformation($"Course {course.Title} uploaded and parsed successfully.");
 
-            return Ok(new
-            {
-                Message = "Course successfully uploaded and parsed.",
-                Course = course
-            });
+            // ✅ Return the Course object directly so frontend can deserialize it properly
+            return Ok(course);
         }
         catch (Exception ex)
         {
@@ -82,7 +80,6 @@ public class CourseController : Controller
         }
     }
 
-    // ✅ Delete method now correctly placed OUTSIDE UploadCourse
     [HttpDelete("delete-course/{id}")]
     public async Task<IActionResult> DeleteCourse(int id)
     {
@@ -108,6 +105,7 @@ public class CourseController : Controller
             return StatusCode(500, "An error occurred while deleting the course.");
         }
     }
+
     [HttpDelete("delete-all-courses")]
     public async Task<IActionResult> DeleteAllCourses()
     {
@@ -133,5 +131,4 @@ public class CourseController : Controller
             return StatusCode(500, "An error occurred while deleting all courses.");
         }
     }
-
 }

@@ -1,14 +1,15 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using System.Threading.Tasks;
-using UFAR.TimeManagmentTracker.Backend.Services;
+using UFAR.PDFSync.Services;
 using System.ComponentModel.DataAnnotations;
 using UFAR.PDFSync.DAO;
 using UFAR.PDFSync.Entities;
 using Microsoft.EntityFrameworkCore;
 using System;
 using Microsoft.Extensions.Logging;
+using System.Linq;
 
-namespace UFAR.TimeManagmentTracker.Backend.Controllers
+namespace UFAR.PDFSync.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
@@ -33,7 +34,6 @@ namespace UFAR.TimeManagmentTracker.Backend.Controllers
         {
             try
             {
-                // Fetch the default document from the database (it should have IsDefault = true)
                 var defaultPdfDocument = await _context.PdfDocuments
                     .FirstOrDefaultAsync(d => d.IsDefault);
 
@@ -49,7 +49,6 @@ namespace UFAR.TimeManagmentTracker.Backend.Controllers
                     return BadRequest("The default PDF document has no extracted text.");
                 }
 
-                // Fetch the second PDF document using the provided file ID
                 var secondPdfDocument = await _context.PdfDocuments
                     .FirstOrDefaultAsync(d => d.Id == request.SecondFileId);
 
@@ -65,9 +64,7 @@ namespace UFAR.TimeManagmentTracker.Backend.Controllers
                     return BadRequest("The second PDF document has no extracted text.");
                 }
 
-                // Compare the default document text with the second document text using AIService
                 var comparisonResult = await _aiService.CompareTextsAsync(defaultPdfDocument.ExtractedText, secondPdfDocument.ExtractedText);
-
                 return Ok(new { comparisonResult });
             }
             catch (Exception ex)
@@ -77,18 +74,18 @@ namespace UFAR.TimeManagmentTracker.Backend.Controllers
             }
         }
 
-        // POST api/ai/ask-ai
+        // POST: api/ai/ask-ai
         [HttpPost("ask-ai")]
-        public async Task<IActionResult> AskAI([FromBody, Required, MinLength(1)] string message)
+        public async Task<IActionResult> AskAI([FromBody] AIMessageRequest request)
         {
-            if (string.IsNullOrWhiteSpace(message))
+            if (string.IsNullOrWhiteSpace(request.Message))
             {
                 return BadRequest("Message cannot be empty.");
             }
 
             try
             {
-                var response = await _aiService.GetAIResponseAsync(message);
+                var response = await _aiService.GetAIResponseAsync(request.Message);
                 return Ok(new { response });
             }
             catch (Exception ex)
@@ -97,12 +94,88 @@ namespace UFAR.TimeManagmentTracker.Backend.Controllers
                 return StatusCode(500, "An error occurred while processing your request.");
             }
         }
+
+        // POST: api/ai/course-summary
+        [HttpPost("course-summary")]
+        public async Task<IActionResult> GetCourseSummary([FromBody] CourseSummaryRequest request)
+        {
+            if (request.CourseId <= 0)
+                return BadRequest("Invalid course ID.");
+
+            try
+            {
+                var course = await _context.Courses
+                    .Include(c => c.LearningOutcomes)
+                    .Include(c => c.Assessments)
+                    .Include(c => c.TeachingMethods)
+                    .Include(c => c.Syllabus)
+                    .Include(c => c.References)
+                    .FirstOrDefaultAsync(c => c.Id == request.CourseId);
+
+                if (course == null)
+                    return NotFound("Course not found.");
+
+                var prompt = $"Can you summarize this university course in a short paragraph? " +
+                             $"Title: {course.Title}, Language: {course.Language}, ECTS: {course.ECTS}, " +
+                             $"Learning Outcomes: {string.Join("; ", course.LearningOutcomes.Select(lo => lo.Description))}, " +
+                             $"Assessments: {string.Join("; ", course.Assessments.Select(a => a.Method))}";
+
+                var summary = await _aiService.GetAIResponseAsync(prompt);
+
+                return Ok(new { summary });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError($"Error generating course summary: {ex.Message}");
+                return StatusCode(500, "An error occurred while processing the course summary.");
+            }
+        }
+
+        // Not an endpoint - internal usage only
+        [NonAction]
+        public async Task<Course> GetCourseAsync(int courseId)
+        {
+            try
+            {
+                var course = await _context.Courses
+                    .Include(c => c.LearningOutcomes)
+                    .Include(c => c.Assessments)
+                    .Include(c => c.TeachingMethods)
+                    .Include(c => c.Syllabus)
+                    .Include(c => c.References)
+                    .FirstOrDefaultAsync(c => c.Id == courseId);
+
+                if (course == null)
+                {
+                    throw new Exception("Course not found.");
+                }
+
+                return course;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error fetching course: {ex.Message}");
+                throw;
+            }
+        }
     }
 
-    // Request model for comparing PDF text
+    // DTOs
     public class ComparePdfRequest
     {
         [Required]
-        public int SecondFileId { get; set; }  // Added the field for the second file ID
+        public int SecondFileId { get; set; }
+    }
+
+    public class AIMessageRequest
+    {
+        [Required]
+        public string Message { get; set; } = string.Empty;
+    }
+
+    public class CourseSummaryRequest
+    {
+        [Required]
+        public int CourseId { get; set; }
     }
 }
